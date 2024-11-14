@@ -1,0 +1,38 @@
+{
+  "demo_table2": {
+    "BaseAccessCode": "64A12AC9F8FF3E4AB0CBC35F52859FAA",
+    "Data": {
+      "Location": "PHYSICAL_LOCATION",
+      "MacAddress": "00:11:22:33:44:55",
+      "Manufacturer": "MANUFACTURER_NAME",
+      "MaxHeight": 1.5,
+      "MinHeight": 1,
+      "CurrentHeight": 1.5,
+      "Icon": "table"
+    }
+  },
+  "demo_table": {
+    "BaseAccessCode": "7ECCB7DA0981304D8DB6125E6C5A5103",
+    "Data": {
+      "Location": "PHYSICAL_LOCATION",
+      "MacAddress": "00:11:22:33:44:55",
+      "Manufacturer": "MANUFACTURER_NAME",
+      "MaxHeight": 1.5,
+      "MinHeight": 1,
+      "CurrentHeight": 1.1999999999999997,
+      "Icon": "table"
+    }
+  },
+  "demo_table3": {
+    "BaseAccessCode": "3528157C9F3F0D46B3DD372F7F765FAC",
+    "Data": {
+      "Location": "PHYSICAL_LOCATION",
+      "MacAddress": "00:11:22:33:44:55",
+      "Manufacturer": "MANUFACTURER_NAME",
+      "MaxHeight": 1.5,
+      "MinHeight": 1,
+      "CurrentHeight": 1.2000000000000002,
+      "Icon": "table"
+    }
+  }
+}
