@@ -280,6 +280,8 @@ partial class Program
         switch (command)
         {
             case "create_user":
+                if (commandValue == id && users.Count((val) => val.Value.Administrator) == 1)
+                    return Utils.BadRequestText("Cannot edit the last administrator");
                 try
                 {
                     bodyText = await new StreamReader(body).ReadToEndAsync();
