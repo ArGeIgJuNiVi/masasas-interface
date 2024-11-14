@@ -21,9 +21,9 @@ static class Data
 
     GET: /user/USER_ID/USER_DAILY_ACCESS_CODE/COMMAND
     Options for COMMAND
-    get_preferences - retrieve user preferences
-    get_tables - retrieve the list of all tables and their daily access codes
+    get_preferences - get user preferences
     get_personalization_state - get if the user is able to set preferences 
+    get_tables - get the list of all tables and their daily access codes
     delete_user - delete self
 
     POST: /user/USER_ID/USER_DAILY_ACCESS_CODE/COMMAND
@@ -34,7 +34,7 @@ static class Data
 
     GET: /table/TABLE_ID/TABLE_DAILY_ACCESS_CODE/COMMAND
     Options for COMMAND
-    get_data - retrieve table data
+    get_data - get table data
 
     POST: /table/TABLE_ID/TABLE_DAILY_ACCESS_CODE/COMMAND
     Options for COMMAND
@@ -44,7 +44,7 @@ static class Data
     Administrator usage:
     GET: /admin/ADMIN_ID/ADMIN_DAILY_ACCESS_CODE/COMMAND
     Options for COMMAND
-    get_users - get all users
+    get_users - get the list of all users
     disable_guest_warning - disable initial warning about the default account
     enable_user_self_deletion - enable the ability of the users to delete their own accounts
     disable_user_self_deletion - disable the ability of the users to delete their own accounts

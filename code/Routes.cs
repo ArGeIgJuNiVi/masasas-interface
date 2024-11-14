@@ -86,18 +86,18 @@ partial class Program
     static HttpResponse TableRouteGet(string id, string accessCode, string command)
     {
         if (
-            tables.TryGetValue(id, out Table? table)
-            && (table.DailyAccessCodeYesterday == accessCode || table.DailyAccessCode == accessCode)
+            !tables.TryGetValue(id, out Table? table)
+            || table.DailyAccessCodeYesterday != accessCode && table.DailyAccessCode != accessCode
         )
         {
-            return command switch
-            {
-                "get_data" => Utils.OkJson(tables[id].Data),
-                _ => Utils.BadRequestText("Unknown command"),
-            };
+            return Utils.BadRequestText("Invalid table id or daily access code");
         }
 
-        return Utils.BadRequestText("Invalid table id or daily access code");
+        return command switch
+        {
+            "get_data" => Utils.OkJson(tables[id].Data),
+            _ => Utils.BadRequestText("Unknown command"),
+        };
     }
 
     static async Task<HttpResponse> TableRoutePost(string id, string accessCode, string command, Stream body)
