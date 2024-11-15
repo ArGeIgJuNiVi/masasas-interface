@@ -4,11 +4,19 @@ static class Data
 {
     public const string GuestUserID = "guest";
     public const string GuestUserPassword = "1234";
-    public static readonly UnsecuredUser UnsecuredGuestUser = new(Utils.EncryptToHex(GuestUserPassword), true, true, new("Guest") { HeightPresets = [new(1.0, "%"), new(1.5, "m")] });
+    public static readonly UnsecuredUser UnsecuredGuestUser = new(Utils.EncryptToHex(GuestUserPassword), new("Guest") { HeightPresets = [new(1.0, "%"), new(1.5, "m")] })
+    {
+        Administrator = true,
+        AllowedPersonalization = true,
+    };
     public static User GuestUser = UnsecuredGuestUser;
 
     public const string NewUserID = "new_user";
-    public static readonly UnsecuredUser NewUser = new("NEW_USER_PASSWORD_RSA", true, true, new("NEW_USER_NAME"));
+    public static readonly UnsecuredUser NewUser = new("NEW_USER_PASSWORD_RSA", new("NEW_USER_NAME"))
+    {
+        Administrator = true,
+        AllowedPersonalization = true,
+    };
 
     public static readonly UnsecuredTable NewTable = new(new(
         "00:11:22:33:44:55",
@@ -22,7 +30,7 @@ static class Data
     Usage:
     GET: /rsa - get the rsa public key of this server
 
-    GET: /user/USER_ID/USER_PASSWORD_RSA - get user daily access code
+    GET: /user/USER_ID/USER_PASSWORD_RSA - get user id and daily access code
 
     GET: /user/USER_ID/USER_DAILY_ACCESS_CODE/COMMAND
     Options for COMMAND
@@ -47,6 +55,8 @@ static class Data
     set_height_percentage - set table height percentage (double, 0 to 1)
 
     Administrator usage:
+    GET: /admin/ADMIN_ID/ADMIN_DAILY_ACCESS_CODE - get if the user is an administrator
+
     GET: /admin/ADMIN_ID/ADMIN_DAILY_ACCESS_CODE/COMMAND
     Options for COMMAND
     get_users - get the list of all users

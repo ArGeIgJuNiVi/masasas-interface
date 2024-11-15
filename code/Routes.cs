@@ -5,14 +5,52 @@ namespace Masasas;
 
 partial class Program
 {
-    static HttpResponse UserCodeGet(string id, string passwordRSA)
+    static HttpResponse UserGet(string id, string passwordRSA)
     {
-        if (!users.TryGetValue(id, out User? user) || user.PasswordHashed != Utils.Hash(Utils.DecryptFromHex(passwordRSA) + user.Salt))
-        {
-            return Utils.BadRequestText("Invalid user id or password");
-        }
+        List<string> IDs = [id];
 
-        return Utils.OkText(user.DailyAccessCode);
+        while (true)
+        {
+            if (!users.TryGetValue(IDs.Last(), out User? user) || user == null)
+            {
+                //integrity enforcement: delete all users that alias to nothing
+                if (IDs.Count > 1)
+                    foreach (string deletedID in IDs)
+                    {
+                        users.TryRemove(deletedID, out _);
+                    }
+                SaveUsers();
+                return Utils.BadRequestText("Invalid user id or password");
+            }
+
+            if (user!.Alias != null)
+            {
+                if (IDs.Contains(user.Alias))
+                {
+                    //integrity enforcement: delete all users that eventually alias to themselves
+                    foreach (string deletedID in IDs)
+                    {
+                        users.TryRemove(deletedID, out _);
+                    }
+                    SaveUsers();
+                    return Utils.BadRequestText("Invalid user id or password");
+                }
+                else
+                {
+                    IDs.Add(user.Alias);
+                    continue;
+                }
+            }
+
+            if (user.PasswordHashed == Utils.Hash(Utils.DecryptFromHex(passwordRSA) + user.Salt))
+            {
+                return Utils.OkJson(new { UserID = IDs.Last(), user.DailyAccessCode });
+            }
+            else
+            {
+                return Utils.BadRequestText("Invalid user id or password");
+            }
+        }
     }
 
     static HttpResponse UserRouteGet(string id, string accessCode, string command)
@@ -112,7 +150,7 @@ partial class Program
             case "set_height":
                 try
                 {
-                    tables[id].Data.SetHeight(Convert.ToDouble(await new StreamReader(body).ReadToEndAsync(), CultureInfo.InvariantCulture));
+                    tables[id].Data.CurrentHeight = Convert.ToDouble(await new StreamReader(body).ReadToEndAsync(), CultureInfo.InvariantCulture);
                     SaveTables();
                     return Utils.OkJson(tables[id].Data.CurrentHeight);
                 }
@@ -122,7 +160,7 @@ partial class Program
             case "set_height_percentage":
                 try
                 {
-                    tables[id].Data.SetHeight(tables[id].Data.MinHeight + Convert.ToDouble(await new StreamReader(body).ReadToEndAsync(), CultureInfo.InvariantCulture) * (tables[id].Data.MaxHeight - tables[id].Data.MinHeight));
+                    tables[id].Data.CurrentHeight = tables[id].Data.MinHeight + Convert.ToDouble(await new StreamReader(body).ReadToEndAsync(), CultureInfo.InvariantCulture) * (tables[id].Data.MaxHeight - tables[id].Data.MinHeight);
                     SaveTables();
                     return Utils.OkJson((tables[id].Data.CurrentHeight - tables[id].Data.MinHeight) / (tables[id].Data.MaxHeight - tables[id].Data.MinHeight));
                 }
@@ -132,6 +170,16 @@ partial class Program
             default:
                 return Utils.BadRequestText("Unknown command");
         };
+    }
+
+    static HttpResponse AdminGet(string id, string accessCode)
+    {
+        if (!users.TryGetValue(id, out User? user) || (user.DailyAccessCode != accessCode && user.DailyAccessCodeYesterday != accessCode))
+        {
+            return Utils.BadRequestText("Invalid admin id or daily access code");
+        }
+
+        return Utils.OkText(user.Administrator.ToString());
     }
 
     static HttpResponse AdminRouteGet(string id, string accessCode, string command)
@@ -201,6 +249,17 @@ partial class Program
 
                 if (commandValue == "guest")
                     config.GuestWarning = false;
+
+                SaveUsers();
+                return Utils.OkText($"Deleted user {commandValue}");
+
+            case "alias_user":
+                if (commandValue == id && users.Count((val) => val.Value.Administrator) == 1)
+                    return Utils.BadRequestText("Cannot alias last administrator");
+
+                if (!users.TryRemove(commandValue, out _))
+                    return Utils.BadRequestText("User does not exist");
+
 
                 SaveUsers();
                 return Utils.OkText($"Deleted user {commandValue}");

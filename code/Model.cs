@@ -34,63 +34,79 @@ class User
 {
     required public string PasswordHashed { get; set; }
     required public string Salt { get; set; }
+    public string? Alias { get; set; } = null;
+
+    public bool Administrator { get; set; } = false;
+    public bool AllowedPersonalization { get; set; } = true;
+    required public UserPreferences? Preferences { get; set; }
 
     [JsonIgnore]
     public string DailyAccessCodeYesterday => Utils.Hash(PasswordHashed + DateTime.UtcNow.AddDays(-1).Day + DateTime.UtcNow.AddDays(-1).Year);
     [JsonIgnore]
     public string DailyAccessCode => Utils.Hash(PasswordHashed + DateTime.UtcNow.Day + DateTime.UtcNow.Year);
-    required public bool Administrator { get; set; }
-    required public bool AllowedPersonalization { get; set; } = true;
-    required public UserPreferences Preferences { get; set; }
 
     public User() { }
 
     [SetsRequiredMembers]
-    public User(string password, bool administrator, bool allowedPersonalization, UserPreferences userPreferences)
+    public User(string password, UserPreferences? preferences)
     {
         Salt = Guid.NewGuid().ToString();
         PasswordHashed = Utils.Hash(password + Salt);
-        Administrator = administrator;
-        AllowedPersonalization = allowedPersonalization;
-        Preferences = userPreferences;
+        Preferences = preferences;
     }
 }
 
 class UnsecuredUser
 {
-
     required public string PasswordRSA { get; set; }
-    required public bool Administrator { get; set; }
-    required public bool AllowedPersonalization { get; set; }
-
     required public UserPreferences Preferences { get; set; }
+
+    public string? Alias { get; set; } = null;
+    public bool Administrator { get; set; }
+    public bool AllowedPersonalization { get; set; }
+
 
     public UnsecuredUser() { }
 
     [SetsRequiredMembers]
-    public UnsecuredUser(string passwordRSA, bool administrator, bool allowedPersonalization, UserPreferences userPreferences)
+    public UnsecuredUser(string passwordRSA, UserPreferences preferences)
     {
         PasswordRSA = passwordRSA;
-        Administrator = administrator;
-        AllowedPersonalization = allowedPersonalization;
-        Preferences = userPreferences;
+        Preferences = preferences;
     }
 
     public static implicit operator User(UnsecuredUser user)
     {
-        return new(Utils.DecryptFromHex(user.PasswordRSA), user.Administrator, user.AllowedPersonalization, user.Preferences);
+        if (user.Alias != null)
+            return new(Utils.DecryptFromHex(user.PasswordRSA), null)
+            {
+                Alias = user.Alias
+            };
+
+        return new(Utils.DecryptFromHex(user.PasswordRSA), user.Preferences)
+        {
+            Administrator = user.Administrator,
+            AllowedPersonalization = user.AllowedPersonalization,
+        };
     }
 }
 
 class TableData
 {
+    private double currentHeight;
+
     required public string Location { get; set; }
     required public string MacAddress { get; set; }
     required public string Manufacturer { get; set; }
     required public double MaxHeight { get; set; }
     required public double MinHeight { get; set; }
-    required public double CurrentHeight { get; set; }
-    required public string Icon { get; set; }
+    public double CurrentHeight
+    {
+        get => Math.Clamp(currentHeight, MinHeight, MaxHeight);
+
+        set => currentHeight = Math.Clamp(value, MinHeight, MaxHeight);
+    }
+    public string Icon { get; set; } = "table";
 
     public TableData() { }
 
@@ -103,12 +119,6 @@ class TableData
         MaxHeight = maxHeight;
         MinHeight = minHeight;
         CurrentHeight = minHeight;
-        Icon = "table";
-    }
-
-    public void SetHeight(double height)
-    {
-        CurrentHeight = Math.Clamp(height, MinHeight, MaxHeight);
     }
 }
 

@@ -131,7 +131,8 @@ partial class Program
         var routes = app.MapGroup("/");
         routes.MapGet("/", () => config.GuestWarning ? Data.RootWithWarning : Data.Root);
         routes.MapGet("/rsa", () => Data.RSAPub);
-        routes.MapGet("/user/{id}/{passwordRSA}", UserCodeGet);
+        routes.MapGet("/user/{id}/{passwordRSA}", UserGet);
+        routes.MapGet("/admin/{id}/{accessCode}", AdminGet);
         routes.MapGet("/user/{id}/{accessCode}/{command}", UserRouteGet);
         routes.MapPost("/user/{id}/{accessCode}/{command}", UserRoutePost);
         routes.MapGet("/table/{id}/{accessCode}/{command}", TableRouteGet);
