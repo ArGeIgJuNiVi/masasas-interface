@@ -75,7 +75,7 @@ partial class Program
                 Invalid user preferences:
                 {bodyText}
                 Correct format:
-                {JsonSerializer.Serialize(Data.GuestUser.Preferences, Utils.JsonOptions)}
+                {JsonSerializer.Serialize(Data.UnsecuredGuestUser.Preferences, Utils.JsonOptions)}
                 """);
 
             default:
@@ -295,7 +295,7 @@ partial class Program
                 Invalid user:
                 {bodyText}
                 Correct format:
-                {JsonSerializer.Serialize(Data.GuestUser, Utils.JsonOptions)}
+                {JsonSerializer.Serialize(Data.UnsecuredGuestUser, Utils.JsonOptions)}
                 """);
             case "create_table":
                 try

@@ -107,6 +107,9 @@ partial class Program
         if (users.IsEmpty)
             users["guest"] = Data.GuestUser;
 
+        if (config.GuestWarning && users.TryGetValue("guest", out User? guest))
+            Data.GuestUser = guest ?? Data.GuestUser;
+
         SaveConfig();
         SaveUsers();
         SaveTables();

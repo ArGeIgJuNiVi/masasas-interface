@@ -3,7 +3,10 @@ namespace Masasas;
 static class Data
 {
     public const string GuestUserID = "guest";
-    public static readonly UnsecuredUser GuestUser = new(Utils.EncryptToHex("1234"), true, true, new("Guest") { HeightPresets = [new(1.0, "%"), new(1.5, "m")] });
+    public const string GuestUserPassword = "1234";
+    public static readonly UnsecuredUser UnsecuredGuestUser = new(Utils.EncryptToHex(GuestUserPassword), true, true, new("Guest") { HeightPresets = [new(1.0, "%"), new(1.5, "m")] });
+    public static User GuestUser = UnsecuredGuestUser;
+
     public const string NewUserID = "new_user";
     public static readonly UnsecuredUser NewUser = new("NEW_USER_PASSWORD_RSA", true, true, new("NEW_USER_NAME"));
 
@@ -32,7 +35,7 @@ static class Data
     Options for COMMAND
     set_preferences - set user preferences
     New user preferences json:
-    {JsonSerializer.Serialize(GuestUser.Preferences, Utils.JsonOptions)}
+    {JsonSerializer.Serialize(UnsecuredGuestUser.Preferences, Utils.JsonOptions)}
 
     GET: /table/TABLE_ID/TABLE_DAILY_ACCESS_CODE/COMMAND
     Options for COMMAND
@@ -62,31 +65,33 @@ static class Data
     set_config_reload_seconds - set the time to reload a file or null to disable automatic reloading (double, in seconds)
     create_user/USER_ID - create or update a user account
     New user account json:
-    {JsonSerializer.Serialize(GuestUser, Utils.JsonOptions)}
+    {JsonSerializer.Serialize(NewUser, Utils.JsonOptions)}
     create_table/TABLE_ID - create or update a table
     New table json structure:
     {JsonSerializer.Serialize(NewTable, Utils.JsonOptions)}
     """);
 
 
-    private static readonly string dailyAccessCode = ((User)GuestUser).DailyAccessCode;
-    public static readonly HttpResponse RootWithWarning = new($"""
+    public static HttpResponse RootWithWarning => new($"""
     Welcome to the Masasas table api
 
     --- WARNING ---
     By default there is one administrator user with the following login details:
     USER_ID: guest
-    USER_PASSWORD_RSA: {GuestUser.PasswordRSA}
-    USER_DAILY_ACCESS_CODE: {dailyAccessCode}
+    USER_PASSWORD: {GuestUserPassword}
+    USER_PASSWORD_RSA: {UnsecuredGuestUser.PasswordRSA}
+    USER_PASSWORD_HASHED: {GuestUser.PasswordHashed}
+    USER_Salt: {GuestUser.Salt}
+    USER_DAILY_ACCESS_CODE: {GuestUser.DailyAccessCode}
 
     Make sure to create a new user with different credentials and delete this one to improve security:
-    POST: /admin/{GuestUserID}/{dailyAccessCode}/create_user/{NewUserID}
+    POST: /admin/{GuestUserID}/{GuestUser.DailyAccessCode}/create_user/{NewUserID}
     BODY:
     {JsonSerializer.Serialize(NewUser, Utils.JsonOptions)}
-    GET: /admin/{GuestUserID}/{dailyAccessCode}/delete_user/{GuestUserID}
+    GET: /admin/{GuestUserID}/{GuestUser.DailyAccessCode}/delete_user/{GuestUserID}
 
-    If you only want to turn off this warning, edit the config file and the it will be reloaded in a few seconds or just run
-    GET: /admin/{GuestUserID}/{dailyAccessCode}/disable_guest_warning
+    If you only want to turn off this warning, edit the config file or just run
+    GET: /admin/{GuestUserID}/{GuestUser.DailyAccessCode}/disable_guest_warning
     --- WARNING ---
 
     {Root.Content}
