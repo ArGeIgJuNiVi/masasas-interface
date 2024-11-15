@@ -91,4 +91,6 @@ static class Data
 
     {Root.Content}
     """);
+
+    public static readonly HttpResponse RSAPub = Utils.OkText(Utils.RSA.ExportRSAPublicKeyPem());
 }

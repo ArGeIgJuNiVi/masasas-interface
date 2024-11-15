@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Security.Cryptography;
 using System.Text.Json;
 
 namespace Masasas;
@@ -119,7 +118,6 @@ partial class Program
         builder.Services.AddSwaggerGen();
 
         var app = builder.Build();
-        app.UseHttpsRedirection();
         if (app.Environment.IsDevelopment())
         {
             app.UseSwagger();
@@ -128,7 +126,8 @@ partial class Program
 
 
         var routes = app.MapGroup("/");
-        routes.MapGet("/rsa", () => Utils.OkText(Utils.RSA.ExportRSAPublicKeyPem()));
+        routes.MapGet("/", () => config.GuestWarning ? Data.RootWithWarning : Data.Root);
+        routes.MapGet("/rsa", () => Data.RSAPub);
         routes.MapGet("/user/{id}/{passwordRSA}", UserCodeGet);
         routes.MapGet("/user/{id}/{accessCode}/{command}", UserRouteGet);
         routes.MapPost("/user/{id}/{accessCode}/{command}", UserRoutePost);
@@ -138,7 +137,6 @@ partial class Program
         routes.MapGet("/admin/{id}/{accessCode}/{command}/{commandValue}", AdminRouteGetWithValue);
         routes.MapPost("/admin/{id}/{accessCode}/{command}", AdminRoutePost);
         routes.MapPost("/admin/{id}/{accessCode}/{command}/{commandValue}", AdminRoutePostWithCommandValue);
-        routes.MapGet("/", () => config.GuestWarning ? Data.RootWithWarning : Data.Root);
         app.Run();
 
         configWatcher?.Dispose();
