@@ -1,6 +1,7 @@
 {
   "guest": {
-    "PasswordEncrypted": "03AC674216F3E15C761EE1A5E255F067953623C8B388B4459E13F978D7C846F4",
+    "PasswordHashed": "ECA723FAA1633AE882D5E0C6F77567A919422094F731321534AFD50C0E0627F9",
+    "Salt": "f4753f47-8c6a-4e91-97bc-f86255e29558",
     "Administrator": true,
     "AllowedPersonalization": true,
     "Preferences": {
@@ -9,10 +10,6 @@
         {
           "Value": 1,
           "Unit": "%"
-        },
-        {
-          "Value": 1,
-          "Unit": "m"
         },
         {
           "Value": 1.5,

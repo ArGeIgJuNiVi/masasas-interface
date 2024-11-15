@@ -5,9 +5,9 @@ namespace Masasas;
 
 partial class Program
 {
-    static HttpResponse UserCodeGet(string id, string password)
+    static HttpResponse UserCodeGet(string id, string passwordRSA)
     {
-        if (!users.TryGetValue(id, out User? user) || user.PasswordEncrypted != Utils.Encrypt(password))
+        if (!users.TryGetValue(id, out User? user) || user.PasswordHashed != Utils.Hash(Utils.DecryptFromHex(passwordRSA) + user.Salt))
         {
             return Utils.BadRequestText("Invalid user id or password");
         }

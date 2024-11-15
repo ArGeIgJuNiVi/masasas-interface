@@ -3,9 +3,9 @@ namespace Masasas;
 static class Data
 {
     public const string GuestUserID = "guest";
-    public static readonly UnsecuredUser GuestUser = new("1234", true, true, new("Guest") { HeightPresets = [new(1.0, "%"), new(1.5, "m")] });
+    public static readonly UnsecuredUser GuestUser = new(Utils.EncryptToHex("1234"), true, true, new("Guest") { HeightPresets = [new(1.0, "%"), new(1.5, "m")] });
     public const string NewUserID = "new_user";
-    public static readonly UnsecuredUser NewUser = new("NEW_USER_ACCESS_CODE", true, true, new("NEW_USER_NAME"));
+    public static readonly UnsecuredUser NewUser = new("NEW_USER_PASSWORD_RSA", true, true, new("NEW_USER_NAME"));
 
     public static readonly UnsecuredTable NewTable = new(new(
         "00:11:22:33:44:55",
@@ -17,7 +17,9 @@ static class Data
 
     public static readonly HttpResponse Root = new($"""
     Usage:
-    GET: /user/USER_ID/USER_PASSWORD - get user daily access code
+    GET: /rsa - get the rsa public key of this server
+
+    GET: /user/USER_ID/USER_PASSWORD_RSA - get user daily access code
 
     GET: /user/USER_ID/USER_DAILY_ACCESS_CODE/COMMAND
     Options for COMMAND
@@ -74,7 +76,7 @@ static class Data
     --- WARNING ---
     By default there is one administrator user with the following login details:
     USER_ID: guest
-    USER_PASSWORD: {GuestUser.Password}
+    USER_PASSWORD_RSA: {GuestUser.PasswordRSA}
     USER_DAILY_ACCESS_CODE: {dailyAccessCode}
 
     Make sure to create a new user with different credentials and delete this one to improve security:

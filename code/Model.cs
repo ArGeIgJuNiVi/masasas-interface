@@ -32,11 +32,13 @@ public class UserPreferences
 
 class User
 {
-    required public string PasswordEncrypted { get; set; }
+    required public string PasswordHashed { get; set; }
+    required public string Salt { get; set; }
+
     [JsonIgnore]
-    public string DailyAccessCodeYesterday => Utils.Encrypt(PasswordEncrypted + DateTime.UtcNow.AddDays(-1).Day + DateTime.UtcNow.AddDays(-1).Year);
+    public string DailyAccessCodeYesterday => Utils.Hash(PasswordHashed + DateTime.UtcNow.AddDays(-1).Day + DateTime.UtcNow.AddDays(-1).Year);
     [JsonIgnore]
-    public string DailyAccessCode => Utils.Encrypt(PasswordEncrypted + DateTime.UtcNow.Day + DateTime.UtcNow.Year);
+    public string DailyAccessCode => Utils.Hash(PasswordHashed + DateTime.UtcNow.Day + DateTime.UtcNow.Year);
     required public bool Administrator { get; set; }
     required public bool AllowedPersonalization { get; set; } = true;
     required public UserPreferences Preferences { get; set; }
@@ -44,9 +46,10 @@ class User
     public User() { }
 
     [SetsRequiredMembers]
-    public User(string accessCode, bool administrator, bool allowedPersonalization, UserPreferences userPreferences)
+    public User(string password, bool administrator, bool allowedPersonalization, UserPreferences userPreferences)
     {
-        PasswordEncrypted = Utils.Encrypt(accessCode);
+        Salt = Guid.NewGuid().ToString();
+        PasswordHashed = Utils.Hash(password + Salt);
         Administrator = administrator;
         AllowedPersonalization = allowedPersonalization;
         Preferences = userPreferences;
@@ -55,7 +58,8 @@ class User
 
 class UnsecuredUser
 {
-    required public string Password { get; set; }
+
+    required public string PasswordRSA { get; set; }
     required public bool Administrator { get; set; }
     required public bool AllowedPersonalization { get; set; }
 
@@ -64,9 +68,9 @@ class UnsecuredUser
     public UnsecuredUser() { }
 
     [SetsRequiredMembers]
-    public UnsecuredUser(string password, bool administrator, bool allowedPersonalization, UserPreferences userPreferences)
+    public UnsecuredUser(string passwordRSA, bool administrator, bool allowedPersonalization, UserPreferences userPreferences)
     {
-        Password = password;
+        PasswordRSA = passwordRSA;
         Administrator = administrator;
         AllowedPersonalization = allowedPersonalization;
         Preferences = userPreferences;
@@ -74,7 +78,7 @@ class UnsecuredUser
 
     public static implicit operator User(UnsecuredUser user)
     {
-        return new(user.Password, user.Administrator, user.AllowedPersonalization, user.Preferences);
+        return new(Utils.DecryptFromHex(user.PasswordRSA), user.Administrator, user.AllowedPersonalization, user.Preferences);
     }
 }
 
@@ -126,9 +130,9 @@ class Table
 {
     required public string BaseAccessCode { get; set; } = Convert.ToHexString(Guid.NewGuid().ToByteArray());
     [JsonIgnore]
-    public string DailyAccessCodeYesterday => Utils.Encrypt(BaseAccessCode + DateTime.UtcNow.AddDays(-1).Day + DateTime.UtcNow.AddDays(-1).Year);
+    public string DailyAccessCodeYesterday => Utils.Hash(BaseAccessCode + DateTime.UtcNow.AddDays(-1).Day + DateTime.UtcNow.AddDays(-1).Year);
     [JsonIgnore]
-    public string DailyAccessCode => Utils.Encrypt(BaseAccessCode + DateTime.UtcNow.Day + DateTime.UtcNow.Year);
+    public string DailyAccessCode => Utils.Hash(BaseAccessCode + DateTime.UtcNow.Day + DateTime.UtcNow.Year);
     required public TableData Data { get; set; }
 
     public Table() { }

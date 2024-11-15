@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Security.Cryptography;
 using System.Text.Json;
 
 namespace Masasas;
@@ -127,7 +128,8 @@ partial class Program
 
 
         var routes = app.MapGroup("/");
-        routes.MapGet("/user/{id}/{password}", UserCodeGet);
+        routes.MapGet("/rsa", () => Utils.OkText(Utils.RSA.ExportRSAPublicKeyPem()));
+        routes.MapGet("/user/{id}/{passwordRSA}", UserCodeGet);
         routes.MapGet("/user/{id}/{accessCode}/{command}", UserRouteGet);
         routes.MapPost("/user/{id}/{accessCode}/{command}", UserRoutePost);
         routes.MapGet("/table/{id}/{accessCode}/{command}", TableRouteGet);
