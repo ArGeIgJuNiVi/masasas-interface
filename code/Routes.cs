@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text.Json;
 
@@ -5,6 +6,11 @@ namespace Masasas;
 
 partial class Program
 {
+    private static bool ValidateUser(string id, string accessCode, [MaybeNullWhen(false)] out User user) => users.TryGetValue(id, out user) && user != null && (user.DailyAccessCode == accessCode || user.DailyAccessCodeYesterday == accessCode) && user.Alias == null;
+
+    private static bool ValidateTable(string id, string accessCode, [MaybeNullWhen(false)] out Table table) => tables.TryGetValue(id, out table) && (table.DailyAccessCodeYesterday == accessCode || table.DailyAccessCode == accessCode);
+
+
     static HttpResponse UserGet(string id, string passwordRSA)
     {
         List<string> IDs = [id];
@@ -42,7 +48,7 @@ partial class Program
                 }
             }
 
-            if (user.PasswordHashed == Utils.Hash(Utils.DecryptFromHex(passwordRSA) + user.Salt))
+            if (user.PasswordHashed == Utils.Hash(Utils.DecryptFromHex(passwordRSA) + user.CreationDate))
             {
                 return Utils.OkJson(new { UserID = IDs.Last(), user.DailyAccessCode });
             }
@@ -55,7 +61,7 @@ partial class Program
 
     static HttpResponse UserRouteGet(string id, string accessCode, string command)
     {
-        if (!users.TryGetValue(id, out User? user) || (user.DailyAccessCode != accessCode && user.DailyAccessCodeYesterday != accessCode))
+        if (!ValidateUser(id, accessCode, out User? user))
         {
             return Utils.BadRequestText("Invalid user id or daily access code");
         }
@@ -68,6 +74,9 @@ partial class Program
             case "get_personalization_state":
                 return Utils.OkText((config.UserPersonalization && users[id].AllowedPersonalization).ToString());
 
+            case "get_self_deletion_state":
+                return Utils.OkText(users[id].AllowedSelfDeletion.ToString());
+
             case "get_tables":
                 return Utils.OkJson(tables.Select((val) => new { ID = val.Key, val.Value.DailyAccessCode, val.Value.Data }));
 
@@ -78,7 +87,8 @@ partial class Program
                 if (user.Administrator && users.Count((val) => val.Value.Administrator) == 1)
                     return Utils.BadRequestText("Cannot delete the last administrator");
 
-                return Utils.OkJson(users[id].Preferences);
+                users.TryRemove(id, out User? deletedUser);
+                return Utils.OkJson(deletedUser?.Preferences);
 
             default:
                 return Utils.BadRequestText("Unknown command");
@@ -87,7 +97,7 @@ partial class Program
 
     async static Task<HttpResponse> UserRoutePost(string id, string accessCode, string command, Stream body)
     {
-        if (!users.TryGetValue(id, out User? user) || (user.DailyAccessCode != accessCode && user.DailyAccessCodeYesterday != accessCode))
+        if (!ValidateUser(id, accessCode, out User? user))
         {
             return Utils.BadRequestText("Invalid user id or daily access code");
         }
@@ -123,24 +133,22 @@ partial class Program
 
     static HttpResponse TableRouteGet(string id, string accessCode, string command)
     {
-        if (
-            !tables.TryGetValue(id, out Table? table)
-            || table.DailyAccessCodeYesterday != accessCode && table.DailyAccessCode != accessCode
-        )
+        if (!ValidateTable(id, accessCode, out Table? table))
         {
             return Utils.BadRequestText("Invalid table id or daily access code");
         }
 
         return command switch
         {
-            "get_data" => Utils.OkJson(tables[id].Data),
+            "get_data" => Utils.OkJson(table),
             _ => Utils.BadRequestText("Unknown command"),
         };
     }
 
+
     static async Task<HttpResponse> TableRoutePost(string id, string accessCode, string command, Stream body)
     {
-        if (!tables.TryGetValue(id, out Table? table) || table.DailyAccessCodeYesterday != accessCode && table.DailyAccessCode != accessCode)
+        if (!ValidateTable(id, accessCode, out Table? table))
         {
             return Utils.BadRequestText("Invalid table id or daily access code");
         }
@@ -150,9 +158,9 @@ partial class Program
             case "set_height":
                 try
                 {
-                    tables[id].Data.CurrentHeight = Convert.ToDouble(await new StreamReader(body).ReadToEndAsync(), CultureInfo.InvariantCulture);
+                    table.Data.CurrentHeight = Convert.ToDouble(await new StreamReader(body).ReadToEndAsync(), CultureInfo.InvariantCulture);
                     SaveTables();
-                    return Utils.OkJson(tables[id].Data.CurrentHeight);
+                    return Utils.OkJson(table.Data.CurrentHeight);
                 }
                 catch (Exception e) { Console.WriteLine(e.Message); }
                 return Utils.BadRequestText("Invalid table height, should be a double in meters");
@@ -160,9 +168,9 @@ partial class Program
             case "set_height_percentage":
                 try
                 {
-                    tables[id].Data.CurrentHeight = tables[id].Data.MinHeight + Convert.ToDouble(await new StreamReader(body).ReadToEndAsync(), CultureInfo.InvariantCulture) * (tables[id].Data.MaxHeight - tables[id].Data.MinHeight);
+                    table.Data.CurrentHeight = table.Data.MinHeight + Convert.ToDouble(await new StreamReader(body).ReadToEndAsync(), CultureInfo.InvariantCulture) * (table.Data.MaxHeight - table.Data.MinHeight);
                     SaveTables();
-                    return Utils.OkJson((tables[id].Data.CurrentHeight - tables[id].Data.MinHeight) / (tables[id].Data.MaxHeight - tables[id].Data.MinHeight));
+                    return Utils.OkJson((table.Data.CurrentHeight - table.Data.MinHeight) / (table.Data.MaxHeight - table.Data.MinHeight));
                 }
                 catch (Exception e) { Console.WriteLine(e.Message); }
                 return Utils.BadRequestText("Invalid table height percentage, should be a double between 0 and 1");
@@ -174,7 +182,7 @@ partial class Program
 
     static HttpResponse AdminGet(string id, string accessCode)
     {
-        if (!users.TryGetValue(id, out User? user) || (user.DailyAccessCode != accessCode && user.DailyAccessCodeYesterday != accessCode))
+        if (!ValidateUser(id, accessCode, out User? user))
         {
             return Utils.BadRequestText("Invalid admin id or daily access code");
         }
@@ -184,7 +192,7 @@ partial class Program
 
     static HttpResponse AdminRouteGet(string id, string accessCode, string command)
     {
-        if (!users.TryGetValue(id, out User? user) || (user.DailyAccessCode != accessCode && user.DailyAccessCodeYesterday != accessCode))
+        if (!ValidateUser(id, accessCode, out User? user))
         {
             return Utils.BadRequestText("Invalid admin id or daily access code");
         }
@@ -229,7 +237,7 @@ partial class Program
 
     static HttpResponse AdminRouteGetWithValue(string id, string accessCode, string command, string commandValue)
     {
-        if (!users.TryGetValue(id, out User? user) || (user.DailyAccessCode != accessCode && user.DailyAccessCodeYesterday != accessCode))
+        if (!ValidateUser(id, accessCode, out User? user))
         {
             return Utils.BadRequestText("Invalid admin id or daily access code");
 
@@ -296,7 +304,7 @@ partial class Program
 
     static async Task<HttpResponse> AdminRoutePost(string id, string accessCode, string command, Stream body)
     {
-        if (!users.TryGetValue(id, out User? user) || (user.DailyAccessCode != accessCode && user.DailyAccessCodeYesterday != accessCode))
+        if (!ValidateUser(id, accessCode, out User? user))
         {
             return Utils.BadRequestText("Invalid admin id or daily access code");
         }
@@ -327,7 +335,7 @@ partial class Program
 
     static async Task<HttpResponse> AdminRoutePostWithCommandValue(string id, string accessCode, string command, string commandValue, Stream body)
     {
-        if (!users.TryGetValue(id, out User? user) || (user.DailyAccessCode != accessCode && user.DailyAccessCodeYesterday != accessCode))
+        if (!ValidateUser(id, accessCode, out User? user))
         {
             return Utils.BadRequestText("Invalid admin id or daily access code");
         }
@@ -375,5 +383,7 @@ partial class Program
             default:
                 return Utils.BadRequestText("Unknown command");
         };
+
+
     }
 }

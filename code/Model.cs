@@ -18,6 +18,7 @@ public class UserPreferences
 
         public HeightValue() { }
     }
+
     required public string Name { get; set; }
     required public List<HeightValue> HeightPresets { get; set; } = [];
 
@@ -33,11 +34,12 @@ public class UserPreferences
 class User
 {
     required public string PasswordHashed { get; set; }
-    required public string Salt { get; set; }
+    required public string CreationDate { get; set; }
     public string? Alias { get; set; } = null;
 
     public bool Administrator { get; set; } = false;
     public bool AllowedPersonalization { get; set; } = true;
+    public bool AllowedSelfDeletion { get; set; } = true;
     required public UserPreferences? Preferences { get; set; }
 
     [JsonIgnore]
@@ -50,8 +52,8 @@ class User
     [SetsRequiredMembers]
     public User(string password, UserPreferences? preferences)
     {
-        Salt = Guid.NewGuid().ToString();
-        PasswordHashed = Utils.Hash(password + Salt);
+        CreationDate = DateTime.UtcNow.ToString("s", System.Globalization.CultureInfo.InvariantCulture);
+        PasswordHashed = Utils.Hash(password + CreationDate);
         Preferences = preferences;
     }
 }
@@ -62,9 +64,9 @@ class UnsecuredUser
     required public UserPreferences Preferences { get; set; }
 
     public string? Alias { get; set; } = null;
-    public bool Administrator { get; set; }
-    public bool AllowedPersonalization { get; set; }
-
+    public bool Administrator { get; set; } = false;
+    public bool AllowedPersonalization { get; set; } = true;
+    public bool AllowedSelfDeletion { get; set; } = true;
 
     public UnsecuredUser() { }
 
@@ -87,6 +89,7 @@ class UnsecuredUser
         {
             Administrator = user.Administrator,
             AllowedPersonalization = user.AllowedPersonalization,
+            AllowedSelfDeletion = user.AllowedSelfDeletion,
         };
     }
 }
@@ -98,8 +101,8 @@ class TableData
     required public string Location { get; set; }
     required public string MacAddress { get; set; }
     required public string Manufacturer { get; set; }
-    required public double MaxHeight { get; set; }
     required public double MinHeight { get; set; }
+    required public double MaxHeight { get; set; }
     public double CurrentHeight
     {
         get => Math.Clamp(currentHeight, MinHeight, MaxHeight);
@@ -116,8 +119,8 @@ class TableData
         Location = location;
         MacAddress = macAddress;
         Manufacturer = manufacturer;
-        MaxHeight = maxHeight;
         MinHeight = minHeight;
+        MaxHeight = maxHeight;
         CurrentHeight = minHeight;
     }
 }

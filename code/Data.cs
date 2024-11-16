@@ -8,6 +8,7 @@ static class Data
     {
         Administrator = true,
         AllowedPersonalization = true,
+        AllowedSelfDeletion = false,
     };
     public static User GuestUser = UnsecuredGuestUser;
 
@@ -16,6 +17,7 @@ static class Data
     {
         Administrator = true,
         AllowedPersonalization = true,
+        AllowedSelfDeletion = true,
     };
 
     public static readonly UnsecuredTable NewTable = new(new(
@@ -36,6 +38,7 @@ static class Data
     Options for COMMAND
     get_preferences - get user preferences
     get_personalization_state - get if the user is able to set preferences 
+    get_self_deletion_state - get if the user is able to delete their own account 
     get_tables - get the list of all tables and their daily access codes
     delete_user - delete self
 
@@ -91,7 +94,7 @@ static class Data
     USER_PASSWORD: {GuestUserPassword}
     USER_PASSWORD_RSA: {UnsecuredGuestUser.PasswordRSA}
     USER_PASSWORD_HASHED: {GuestUser.PasswordHashed}
-    USER_Salt: {GuestUser.Salt}
+    USER_CREATION_DATE: {GuestUser.CreationDate}
     USER_DAILY_ACCESS_CODE: {GuestUser.DailyAccessCode}
 
     Make sure to create a new user with different credentials and delete this one to improve security:
