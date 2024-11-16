@@ -48,7 +48,7 @@ partial class Program
                 }
             }
 
-            if (user.PasswordHashed == Utils.Hash(Utils.DecryptFromHex(passwordRSA) + user.CreationDate))
+            if (users.TryGetValue(IDs.First(), out User? loginUser) && loginUser.PasswordHashed == Utils.Hash(Utils.DecryptFromHex(passwordRSA) + loginUser.CreationDate))
             {
                 return Utils.OkJson(new { UserID = IDs.Last(), user.DailyAccessCode });
             }
