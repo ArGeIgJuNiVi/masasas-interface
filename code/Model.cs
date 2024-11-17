@@ -162,12 +162,19 @@ class Table
     }
 }
 
-class Config
+[method: SetsRequiredMembers]
+class Config()
 {
     required public bool GuestWarning { get; set; } = true;
     required public bool UserSelfDeletion { get; set; } = true;
     required public bool UserPersonalization { get; set; } = true;
     required public double? ConfigReloadPeriodSeconds { get; set; } = 5;
+
+    // depending on how we interact with the tables, these might be needed
+    // required public string TableAPIScheme { get; set; } = "http";
+    // required public string TableAPIHostname { get; set; } = "localhost";
+    // required public int TableAPIPort { get; set; } = 8080;
+
     [JsonIgnore]
     public TimeSpan ConfigReloadPeriod
     {
@@ -181,9 +188,6 @@ class Config
                 : Timeout.InfiniteTimeSpan;
         }
     }
-
-    [SetsRequiredMembers]
-    public Config() { }
 }
 
 class HttpResponse(string content, string contentType = "text/plain", int statusCode = 200) : IResult
