@@ -19,5 +19,15 @@ static class Utils
 
 
     public static string EncryptToHex(string str) => Convert.ToHexString(RSA.Encrypt(Encoding.UTF8.GetBytes(str), RSAEncryptionPadding.Pkcs1));
-    public static string DecryptFromHex(string hex) => Encoding.UTF8.GetString(RSA.Decrypt(Convert.FromHexString(hex), RSAEncryptionPadding.Pkcs1));
+    public static string? DecryptFromHex(string hex)
+    {
+        try
+        {
+            return Encoding.UTF8.GetString(RSA.Decrypt(Convert.FromHexString(hex), RSAEncryptionPadding.Pkcs1));
+        }
+        catch
+        {
+            return null;
+        }
+    }
 }

@@ -51,7 +51,7 @@ class User
     public User() { }
 
     [SetsRequiredMembers]
-    public User(string password, UserPreferences? preferences)
+    public User(string? password, UserPreferences? preferences)
     {
         CreationDate = DateTime.UtcNow.ToString("s", System.Globalization.CultureInfo.InvariantCulture);
         PasswordHashed = Utils.Hash(password + CreationDate);
