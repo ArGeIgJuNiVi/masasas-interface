@@ -6,10 +6,17 @@ namespace Masasas;
 
 partial class Program
 {
-    private static bool ValidateUser(string id, string accessCode, [MaybeNullWhen(false)] out User user) => users.TryGetValue(id, out user) && user != null && (user.DailyAccessCode == accessCode || user.DailyAccessCodeYesterday == accessCode) && user.Alias == null;
+    private static bool ValidateUser(string id, string accessCodeRSA, [MaybeNullWhen(false)] out User user)
+    {
+        string accessCode = Utils.DecryptFromHex(accessCodeRSA);
+        return users.TryGetValue(id, out user) && user != null && (user.DailyAccessCode == accessCode || user.DailyAccessCodeYesterday == accessCode) && user.Alias == null;
+    }
 
-    private static bool ValidateTable(string id, string accessCode, [MaybeNullWhen(false)] out Table table) => tables.TryGetValue(id, out table) && (table.DailyAccessCodeYesterday == accessCode || table.DailyAccessCode == accessCode);
-
+    private static bool ValidateTable(string id, string accessCodeRSA, [MaybeNullWhen(false)] out Table table)
+    {
+        string accessCode = Utils.DecryptFromHex(accessCodeRSA);
+        return tables.TryGetValue(id, out table) && (table.DailyAccessCodeYesterday == accessCode || table.DailyAccessCode == accessCode);
+    }
 
     static HttpResponse UserGet(string id, string passwordRSA)
     {

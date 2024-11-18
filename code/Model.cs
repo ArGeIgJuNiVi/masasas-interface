@@ -4,23 +4,24 @@ using System.Text.Json.Serialization;
 namespace Masasas;
 public class UserPreferences
 {
-    public struct HeightValue
+    public struct PresetValue
     {
         public required double Value { get; set; }
         public required string Unit { get; set; }
+        public string? Name { get; set; } = null;
 
         [SetsRequiredMembers]
-        public HeightValue(double value, string unit)
+        public PresetValue(double value, string unit)
         {
             Value = value;
             Unit = unit;
         }
 
-        public HeightValue() { }
+        public PresetValue() { }
     }
 
     required public string Name { get; set; }
-    required public List<HeightValue> HeightPresets { get; set; } = [];
+    required public List<PresetValue> HeightPresets { get; set; } = [];
 
     public UserPreferences() { }
 
