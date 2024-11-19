@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Security.Cryptography.X509Certificates;
 using System.Text.Json;
 
 namespace Masasas;
@@ -127,11 +128,12 @@ partial class Program
             app.UseSwaggerUI();
         }
 
+        app.UseHttpsRedirection();
+
 
         var routes = app.MapGroup("/");
         routes.MapGet("/", () => config.GuestWarning ? Data.RootWithWarning : Data.Root);
-        routes.MapGet("/rsa", () => Data.RSAPub);
-        routes.MapGet("/user/{id}/{passwordRSA}", UserGet);
+        routes.MapGet("/user/{id}/{password}", UserGet);
         routes.MapGet("/admin/{id}/{accessCode}", AdminGet);
         routes.MapGet("/user/{id}/{accessCode}/{command}", UserRouteGet);
         routes.MapPost("/user/{id}/{accessCode}/{command}", UserRoutePost);

@@ -4,7 +4,7 @@ static class Data
 {
     public const string GuestUserID = "guest";
     public const string GuestUserPassword = "1234";
-    public static readonly UnsecuredUser UnsecuredGuestUser = new(Utils.EncryptToHex(GuestUserPassword), new("Guest") { HeightPresets = [new(1.0, "%"), new(1.5, "m")] })
+    public static readonly UnsecuredUser UnsecuredGuestUser = new(GuestUserPassword, new("Guest") { HeightPresets = [new(1.0, "%"), new(1.5, "m")] })
     {
         Administrator = true,
         AllowedPersonalization = true,
@@ -30,9 +30,7 @@ static class Data
 
     public static readonly HttpResponse Root = new($"""
     Usage:
-    GET: /rsa - get the rsa public key of this server
-
-    GET: /user/USER_ID/USER_PASSWORD_RSA - get user id and daily access code
+    GET: /user/USER_ID/USER_PASSWORD - get user id and daily access code
 
     GET: /user/USER_ID/USER_DAILY_ACCESS_CODE/COMMAND
     Options for COMMAND
@@ -92,7 +90,6 @@ static class Data
     By default there is one administrator user with the following login details:
     USER_ID: guest
     USER_PASSWORD: {GuestUserPassword}
-    USER_PASSWORD_RSA: {UnsecuredGuestUser.PasswordRSA}
     USER_PASSWORD_HASHED: {GuestUser.PasswordHashed}
     USER_CREATION_DATE: {GuestUser.CreationDate}
     USER_DAILY_ACCESS_CODE: {GuestUser.DailyAccessCode}

@@ -61,7 +61,7 @@ class User
 
 class UnsecuredUser
 {
-    required public string PasswordRSA { get; set; }
+    required public string Password { get; set; }
     required public UserPreferences Preferences { get; set; }
 
     public string? Alias { get; set; } = null;
@@ -72,21 +72,21 @@ class UnsecuredUser
     public UnsecuredUser() { }
 
     [SetsRequiredMembers]
-    public UnsecuredUser(string passwordRSA, UserPreferences preferences)
+    public UnsecuredUser(string password, UserPreferences preferences)
     {
-        PasswordRSA = passwordRSA;
+        Password = password;
         Preferences = preferences;
     }
 
     public static implicit operator User(UnsecuredUser user)
     {
         if (user.Alias != null)
-            return new(Utils.DecryptFromHex(user.PasswordRSA), null)
+            return new(user.Password, null)
             {
                 Alias = user.Alias
             };
 
-        return new(Utils.DecryptFromHex(user.PasswordRSA), user.Preferences)
+        return new(user.Password, user.Preferences)
         {
             Administrator = user.Administrator,
             AllowedPersonalization = user.AllowedPersonalization,
