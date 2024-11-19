@@ -99,6 +99,13 @@ class TableData
 {
     private double currentHeight;
 
+    [JsonIgnore] // used by external api interfaces (decides data flow external->local or local->external)
+    public bool SetRecently { get; set; }
+
+    [JsonIgnore] // used by external api interfaces (wait before doing anything)
+    public DateTime LastMoved { get; set; }
+
+
     required public string Location { get; set; }
     required public string MacAddress { get; set; }
     required public string Manufacturer { get; set; }
@@ -112,7 +119,10 @@ class TableData
     }
     public string Icon { get; set; } = "table";
 
-    public TableData() { }
+    public TableData()
+    {
+        SetRecently = true;
+    }
 
     [SetsRequiredMembers]
     public TableData(string macAddress, string manufacturer, double minHeight, double maxHeight, string location)
@@ -123,6 +133,7 @@ class TableData
         MinHeight = minHeight;
         MaxHeight = maxHeight;
         CurrentHeight = minHeight;
+        SetRecently = true;
     }
 }
 
@@ -171,10 +182,10 @@ class Config()
     required public bool UserPersonalization { get; set; } = true;
     required public double? ConfigReloadPeriodSeconds { get; set; } = 5;
 
-    // depending on how we interact with the tables, these might be needed
-    // required public string TableAPIScheme { get; set; } = "http";
-    // required public string TableAPIHostname { get; set; } = "localhost";
-    // required public int TableAPIPort { get; set; } = 8080;
+    required public double? ExternalAPIRequestFrequencySeconds { get; set; } = 0.5;
+    required public string ExternalAPIUrl { get; set; } = "http://localhost:8000";
+    required public string ExternalAPIType { get; set; } = "Kr64";
+    required public string ExternalAPIKey { get; set; } = "";
 
     [JsonIgnore]
     public TimeSpan ConfigReloadPeriod
@@ -186,6 +197,20 @@ class Config()
 
             return ConfigReloadPeriodSeconds != null
                 ? TimeSpan.FromSeconds(ConfigReloadPeriodSeconds ?? throw new("HOW???"))
+                : Timeout.InfiniteTimeSpan;
+        }
+    }
+
+    [JsonIgnore]
+    public TimeSpan ExternalAPIRequestFrequency
+    {
+        get
+        {
+            if (ExternalAPIRequestFrequencySeconds != null)
+                ExternalAPIRequestFrequencySeconds = Math.Max((double)ExternalAPIRequestFrequencySeconds, 0.1);
+
+            return ExternalAPIRequestFrequencySeconds != null
+                ? TimeSpan.FromSeconds(ExternalAPIRequestFrequencySeconds ?? throw new("HOW???"))
                 : Timeout.InfiniteTimeSpan;
         }
     }

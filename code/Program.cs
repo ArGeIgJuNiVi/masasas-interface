@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Security.Cryptography.X509Certificates;
 using System.Text.Json;
 
 namespace Masasas;
@@ -32,6 +31,7 @@ partial class Program
                    config = JsonSerializer.Deserialize<Config>(File.ReadAllText("config.json")) ?? throw new();
                    Console.WriteLine($"Reloaded config");
                    UpdateConfigWatcher();
+                   UpdateExternalAPI();
                }
                catch
                {
@@ -98,7 +98,6 @@ partial class Program
         : new();
     }
 
-
     public static void Main(string[] args)
     {
         LoadConfig();
@@ -116,6 +115,7 @@ partial class Program
         SaveTables();
 
         UpdateConfigWatcher();
+        UpdateExternalAPI();
 
         var builder = WebApplication.CreateBuilder(args);
         builder.Services.AddEndpointsApiExplorer();
@@ -146,7 +146,8 @@ partial class Program
         app.Run();
 
         configWatcher?.Dispose();
-        configWatcher = null;
+
+        apiCaller?.Dispose();
 
         SaveConfig();
         SaveUsers();

@@ -164,6 +164,8 @@ partial class Program
                 try
                 {
                     table.Data.CurrentHeight = Convert.ToDouble(await new StreamReader(body).ReadToEndAsync(), CultureInfo.InvariantCulture);
+                    table.Data.SetRecently = true;
+
                     SaveTables();
                     return Utils.OkJson(table.Data.CurrentHeight);
                 }
@@ -174,6 +176,8 @@ partial class Program
                 try
                 {
                     table.Data.CurrentHeight = table.Data.MinHeight + Convert.ToDouble(await new StreamReader(body).ReadToEndAsync(), CultureInfo.InvariantCulture) * (table.Data.MaxHeight - table.Data.MinHeight);
+                    table.Data.SetRecently = true;
+
                     SaveTables();
                     return Utils.OkJson((table.Data.CurrentHeight - table.Data.MinHeight) / (table.Data.MaxHeight - table.Data.MinHeight));
                 }
@@ -195,7 +199,7 @@ partial class Program
         return Utils.OkText(user.Administrator.ToString());
     }
 
-    static HttpResponse AdminRouteGet(string id, string accessCode, string command)
+    static async Task<HttpResponse> AdminRouteGet(string id, string accessCode, string command)
     {
         if (!ValidateUser(id, accessCode, out User? user))
         {
@@ -209,6 +213,11 @@ partial class Program
         {
             case "get_users":
                 return Utils.OkJson(users.Select((val) => new { ID = val.Key, val.Value.Preferences }));
+
+            case "import_external_api_tables":
+                if (await api.ImportTables())
+                    return Utils.OkText("Imported tables successfully");
+                else return Utils.BadRequestText("Could not import external api tables");
 
             case "disable_guest_warning":
                 config.GuestWarning = false;
@@ -329,10 +338,60 @@ partial class Program
                         config.ConfigReloadPeriodSeconds = Convert.ToDouble(bodyText, CultureInfo.InvariantCulture);
                     UpdateConfigWatcher();
                     SaveConfig();
-                    return Utils.OkJson(config.ConfigReloadPeriodSeconds);
+                    return Utils.OkText(config.ConfigReloadPeriodSeconds.ToString() ?? "null");
                 }
                 catch (Exception e) { Console.WriteLine(e.Message); }
                 return Utils.BadRequestText("Invalid config reload time, should be a double in seconds, or null to disable reloading");
+
+            case "set_external_api_url":
+                try
+                {
+                    string? bodyText = await new StreamReader(body).ReadToEndAsync();
+                    config.ExternalAPIUrl = new Uri(bodyText).ToString();
+                    SaveConfig();
+                    return Utils.OkText(config.ExternalAPIUrl);
+                }
+                catch (Exception e) { Console.WriteLine(e.Message); }
+                return Utils.BadRequestText("Invalid api url");
+
+            case "set_external_api_key":
+                try
+                {
+                    string? bodyText = await new StreamReader(body).ReadToEndAsync();
+                    config.ExternalAPIKey = bodyText;
+                    SaveConfig();
+                    return Utils.OkText(config.ExternalAPIKey);
+                }
+                catch (Exception e) { Console.WriteLine(e.Message); }
+                return Utils.BadRequestText("Invalid api key");
+
+            case "set_external_api_type":
+                try
+                {
+                    string? bodyText = await new StreamReader(body).ReadToEndAsync();
+                    config.ExternalAPIType = bodyText;
+                    UpdateExternalAPI();
+                    SaveConfig();
+                    return Utils.OkText(config.ExternalAPIType);
+                }
+                catch (Exception e) { Console.WriteLine(e.Message); }
+                return Utils.BadRequestText("Invalid api type");
+
+            case "set_external_api_request_frequency_seconds":
+                try
+                {
+                    string? bodyText = await new StreamReader(body).ReadToEndAsync();
+                    if (bodyText == "null" || string.IsNullOrWhiteSpace(bodyText))
+                        config.ExternalAPIRequestFrequencySeconds = null;
+                    else
+                        config.ExternalAPIRequestFrequencySeconds = Convert.ToDouble(bodyText, CultureInfo.InvariantCulture);
+                    UpdateExternalAPI();
+                    SaveConfig();
+                    return Utils.OkText(config.ExternalAPIRequestFrequencySeconds.ToString() ?? "null");
+                }
+                catch (Exception e) { Console.WriteLine(e.Message); }
+                return Utils.BadRequestText("Invalid api request frequency time, should be a double in seconds, or null to disable requests");
+
             default:
                 return Utils.BadRequestText("Unknown command");
         };

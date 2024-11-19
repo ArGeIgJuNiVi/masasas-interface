@@ -61,6 +61,7 @@ static class Data
     GET: /admin/ADMIN_ID/ADMIN_DAILY_ACCESS_CODE/COMMAND
     Options for COMMAND
     get_users - get the list of all users
+    import_external_api_tables - import the tables from the defined external api
     disable_guest_warning - disable initial warning about the default account
     enable_user_self_deletion - enable the ability of the users to delete their own accounts
     disable_user_self_deletion - disable the ability of the users to delete their own accounts
@@ -71,9 +72,14 @@ static class Data
     delete_user/USER_ID - delete a user account
     delete_table/TABLE_ID - delete a table
 
+
     POST: /admin/ADMIN_ID/ADMIN_DAILY_ACCESS_CODE/COMMAND
     Options for COMMAND
     set_config_reload_seconds - set the time to reload a file or null to disable automatic reloading (double, in seconds)
+    set_external_api_key - set the external api key (string)
+    set_external_api_url - set the external api url (string, parsed into Uri)
+    set_external_api_type - set the used external api implementation (Options: "dummy", "Kr64", invalid values are equivalent to dummy)
+    set_external_api_request_frequency_seconds - set the time to update the tables' data using the external api or null to disable it (double, in seconds)
     create_user/USER_ID - create or update a user account
     New user account json:
     {JsonSerializer.Serialize(NewUser, Utils.JsonOptions)}
