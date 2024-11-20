@@ -4,29 +4,9 @@ namespace Masasas;
 
 partial class Program
 {
-    static HttpClient ExternalClient = new();
-    interface IExternalApi
-    {
-        Task Run();
-
-        Task<bool> ImportTables();
-    }
     class ExternalAPIs
     {
-        public class DummyApi : IExternalApi
-        {
-            public Task<bool> ImportTables()
-            {
-                return new(() => true);
-            }
-
-            public Task Run()
-            {
-                return new(() => { });
-            }
-        }
-
-        public class Kr64Api : IExternalApi
+        public class Kr64Api
         {
 #pragma warning disable IDE1006
             private class ApiTable
@@ -64,64 +44,59 @@ partial class Program
             }
 #pragma warning restore IDE1006
 
-            public async Task Run()
+            public static async Task Run(string tableID)
             {
                 string? json = null;
-                foreach (string id in tables.Keys)
+                try
                 {
-                    //only interact with api tables
-                    if (tables[id].Data.ConnectionMode != "api")
-                        continue;
-
-                    try
+                    using HttpClient externalClient = new() { BaseAddress = new(tables[tableID].Data.Api!.Url) };
+                    // if table data was set recently, update the external value, otherwise update the local 
+                    if (tables[tableID].Data.SetRecently)
                     {
-                        // if table data was set recently, update the external value, otherwise update the local 
-                        if (tables[id].Data.SetRecently)
-                        {
-                            tables[id].Data.SetRecently = false;
-                            int position_mm = (int)(tables[id].Data.CurrentHeight * 1000);
-                            json = await (await ExternalClient.PutAsync(
-                                $"/api/v2/{config.ExternalAPIKey}/desks/{tables[id].Data.MacAddress.ToLowerInvariant()}/state",
-                                new StringContent($"{{\"position_mm\": {position_mm}}}")
-                            )).Content.ReadAsStringAsync();
-                        }
-                        else
-                        {
-                            json = await (await ExternalClient.GetAsync(
-                                $"/api/v2/{config.ExternalAPIKey}/desks/{tables[id].Data.MacAddress.ToLowerInvariant()}"
-                            )).Content.ReadAsStringAsync();
-
-                            ApiTable desk = JsonSerializer.Deserialize<ApiTable>(json)!;
-
-                            // do not correct existing table height until the table stops
-                            if (desk.state.speed_mms == 0)
-                            {
-                                tables[id].Data.CurrentHeight = desk.state.position_mm / 1000.0;
-                            }
-                        }
+                        tables[tableID].Data.SetRecently = false;
+                        int position_mm = (int)(tables[tableID].Data.CurrentHeight * 1000);
+                        json = await (await externalClient.PutAsync(
+                            $"/api/v2/{tables[tableID].Data.Api!.Key}/desks/{tables[tableID].Data.MacAddress.ToLowerInvariant()}/state",
+                            new StringContent($"{{\"position_mm\": {position_mm}}}")
+                        )).Content.ReadAsStringAsync();
                     }
-                    catch (Exception e)
+                    else
                     {
-                        Console.WriteLine(json ?? e.Message);
+                        json = await (await externalClient.GetAsync(
+                            $"/api/v2/{tables[tableID].Data.Api!.Key}/desks/{tables[tableID].Data.MacAddress.ToLowerInvariant()}"
+                        )).Content.ReadAsStringAsync();
+
+                        ApiTable desk = JsonSerializer.Deserialize<ApiTable>(json)!;
+
+                        // do not correct existing table height until the table stops
+                        if (desk.state.speed_mms == 0)
+                        {
+                            tables[tableID].Data.CurrentHeight = desk.state.position_mm / 1000.0;
+                        }
                     }
                 }
+                catch (Exception e)
+                {
+                    Console.WriteLine(json ?? e.Message);
+                }
+
             }
 
-            public async Task<bool> ImportTables()
+            public static async Task<bool> ImportTables(string url, string key)
             {
                 try
                 {
-
-                    string json = await (await ExternalClient.GetAsync(
-                            $"/api/v2/{config.ExternalAPIKey}/desks/"
+                    HttpClient externalClient = new() { BaseAddress = new(url), Timeout = TimeSpan.FromSeconds(1), };
+                    string json = await (await externalClient.GetAsync(
+                            $"/api/v2/{key}/desks/"
                         )).Content.ReadAsStringAsync();
 
                     var apiMacs = JsonSerializer.Deserialize<List<string>>(json)!;
 
                     foreach (string macAddress in apiMacs)
                     {
-                        json = await (await ExternalClient.GetAsync(
-                            $"/api/v2/{config.ExternalAPIKey}/desks/{macAddress}"
+                        json = await (await externalClient.GetAsync(
+                            $"/api/v2/{key}/desks/{macAddress}"
                         )).Content.ReadAsStringAsync();
                         var table = JsonSerializer.Deserialize<ApiTable>(json)!;
                         tables[macAddress] = new(new(
@@ -133,9 +108,11 @@ partial class Program
                             table.config.name
                         )
                         {
-                            CurrentHeight = table.state.position_mm / 1000.0
+                            CurrentHeight = table.state.position_mm / 1000.0,
+                            Api = new(url, key, "Kr64"),
                         });
                     }
+                    SaveTables();
                     return true;
                 }
                 catch (Exception e)
@@ -149,28 +126,43 @@ partial class Program
 
     static Timer? apiCaller;
 
-    static IExternalApi api = new ExternalAPIs.DummyApi();
-
     static async void ExternalAPICaller(object? _)
     {
-        await api.Run();
+        foreach ((string id, object _) in tables)
+        {
+            //only interact with api tables
+            if (tables[id].Data.ConnectionMode != "api")
+                continue;
+            switch (tables[id].Data.Api!.Type.ToLowerInvariant())
+            {
+                case "kr64":
+                    await ExternalAPIs.Kr64Api.Run(id);
+                    break;
+                case "dummy":
+                default:
+                    Console.WriteLine($"dummy api run called ({tables[id].Data.Api!.Type})");
+                    break;
+            };
+
+        }
+    }
+
+    static async Task<bool> ImportTablesFromApi(TableData.ApiData data)
+    {
+        switch (data.Type.ToLowerInvariant())
+        {
+            case "kr64":
+                return await ExternalAPIs.Kr64Api.ImportTables(data.Url, data.Key);
+
+            case "dummy":
+            default:
+                Console.WriteLine($"dummy api import called ({data.Type.ToLowerInvariant()})");
+                return false;
+        };
     }
 
     static void UpdateExternalAPI()
     {
-        try
-        {
-            ExternalClient = new() { BaseAddress = new(config.ExternalAPIUrl) };
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine(e.Message);
-        }
-        api = config.ExternalAPIType.ToLowerInvariant() switch
-        {
-            "kr64" => new ExternalAPIs.Kr64Api(),
-            "dummy" or _ => new ExternalAPIs.DummyApi(),
-        };
         apiCaller?.Dispose();
         apiCaller = new(ExternalAPICaller, null, config.ExternalAPIRequestFrequency, config.ExternalAPIRequestFrequency);
     }

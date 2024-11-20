@@ -199,7 +199,7 @@ partial class Program
         return Utils.OkText(user.Administrator.ToString());
     }
 
-    static async Task<HttpResponse> AdminRouteGet(string id, string accessCode, string command)
+    static HttpResponse AdminRouteGet(string id, string accessCode, string command)
     {
         if (!ValidateUser(id, accessCode, out User? user))
         {
@@ -213,11 +213,6 @@ partial class Program
         {
             case "get_users":
                 return Utils.OkJson(users.Select((val) => new { ID = val.Key, val.Value.Preferences }));
-
-            case "import_external_api_tables":
-                if (await api.ImportTables())
-                    return Utils.OkText("Imported tables successfully");
-                else return Utils.BadRequestText("Could not import external api tables");
 
             case "disable_guest_warning":
                 config.GuestWarning = false;
@@ -326,12 +321,13 @@ partial class Program
         if (!user.Administrator)
             return new HttpResponse("Unauthorized user", "text/plain", 401);
 
+        string? bodyText = null;
         switch (command)
         {
             case "set_config_reload_seconds":
                 try
                 {
-                    string? bodyText = await new StreamReader(body).ReadToEndAsync();
+                    bodyText = await new StreamReader(body).ReadToEndAsync();
                     if (bodyText == "null" || string.IsNullOrWhiteSpace(bodyText))
                         config.ConfigReloadPeriodSeconds = null;
                     else
@@ -343,45 +339,29 @@ partial class Program
                 catch (Exception e) { Console.WriteLine(e.Message); }
                 return Utils.BadRequestText("Invalid config reload time, should be a double in seconds, or null to disable reloading");
 
-            case "set_external_api_url":
+            case "import_tables_external_api":
                 try
                 {
-                    string? bodyText = await new StreamReader(body).ReadToEndAsync();
-                    config.ExternalAPIUrl = new Uri(bodyText).ToString();
-                    UpdateExternalAPI();
-                    SaveConfig();
-                    return Utils.OkText(config.ExternalAPIUrl);
+                    bodyText = await new StreamReader(body).ReadToEndAsync();
+                    var api = JsonSerializer.Deserialize<TableData.ApiData>(bodyText)!;
+                    if (await ImportTablesFromApi(api))
+                        return Utils.OkText("Imported tables successfully");
+                    else
+                        return Utils.BadRequestText("Failed importing tables");
                 }
                 catch (Exception e) { Console.WriteLine(e.Message); }
-                return Utils.BadRequestText("Invalid api url");
+                return Utils.BadRequestText($"""
+                Invalid api connection details:
+                {bodyText}
+                correct format:
+                {JsonSerializer.Serialize(Data.NewTable.Data.Api, Utils.JsonOptions)}
+                """);
 
-            case "set_external_api_key":
-                try
-                {
-                    string? bodyText = await new StreamReader(body).ReadToEndAsync();
-                    config.ExternalAPIKey = bodyText;
-                    SaveConfig();
-                    return Utils.OkText(config.ExternalAPIKey);
-                }
-                catch (Exception e) { Console.WriteLine(e.Message); }
-                return Utils.BadRequestText("Invalid api key");
-
-            case "set_external_api_type":
-                try
-                {
-                    string? bodyText = await new StreamReader(body).ReadToEndAsync();
-                    config.ExternalAPIType = bodyText;
-                    UpdateExternalAPI();
-                    SaveConfig();
-                    return Utils.OkText(config.ExternalAPIType);
-                }
-                catch (Exception e) { Console.WriteLine(e.Message); }
-                return Utils.BadRequestText("Invalid api type");
 
             case "set_external_api_request_frequency_seconds":
                 try
                 {
-                    string? bodyText = await new StreamReader(body).ReadToEndAsync();
+                    bodyText = await new StreamReader(body).ReadToEndAsync();
                     if (bodyText == "null" || string.IsNullOrWhiteSpace(bodyText))
                         config.ExternalAPIRequestFrequencySeconds = null;
                     else

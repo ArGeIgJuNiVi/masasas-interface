@@ -116,6 +116,22 @@ class TableData
     }
     public string Icon { get; set; } = "table";
 
+    [method: SetsRequiredMembers]
+    public class ApiData(string url, string key, string type)
+    {
+        public required string Url { get; set; } = url;
+        public required string Key { get; set; } = key;
+        public required string Type { get; set; } = type;
+    }
+    public required ApiData? Api { get; set; } = null;
+
+    [method: SetsRequiredMembers]
+    public class BluetoothData(string name)
+    {
+        public required string Name { get; set; } = name;
+    }
+    public BluetoothData? Bluetooth { get; set; } = null;
+
     public TableData()
     {
         SetRecently = true;
@@ -181,9 +197,6 @@ class Config()
     required public double? ConfigReloadPeriodSeconds { get; set; } = 5;
 
     required public double? ExternalAPIRequestFrequencySeconds { get; set; } = 0.5;
-    required public string ExternalAPIUrl { get; set; } = "http://localhost:8000";
-    required public string ExternalAPIType { get; set; } = "Kr64";
-    required public string ExternalAPIKey { get; set; } = "";
 
     [JsonIgnore]
     public TimeSpan ConfigReloadPeriod
