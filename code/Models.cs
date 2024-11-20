@@ -102,15 +102,12 @@ class TableData
     [JsonIgnore] // used by external api interfaces (decides data flow external->local or local->external)
     public bool SetRecently { get; set; }
 
-    [JsonIgnore] // used by external api interfaces (wait before doing anything)
-    public DateTime LastMoved { get; set; }
-
-
-    required public string Location { get; set; }
     required public string MacAddress { get; set; }
+    required public string ConnectionMode { get; set; }
     required public string Manufacturer { get; set; }
     required public double MinHeight { get; set; }
     required public double MaxHeight { get; set; }
+    required public string Name { get; set; }
     public double CurrentHeight
     {
         get => Math.Clamp(currentHeight, MinHeight, MaxHeight);
@@ -125,14 +122,15 @@ class TableData
     }
 
     [SetsRequiredMembers]
-    public TableData(string macAddress, string manufacturer, double minHeight, double maxHeight, string location)
+    public TableData(string macAddress, string connectionMode, string manufacturer, double minHeight, double maxHeight, string name)
     {
-        Location = location;
         MacAddress = macAddress;
+        ConnectionMode = connectionMode;
         Manufacturer = manufacturer;
         MinHeight = minHeight;
         MaxHeight = maxHeight;
         CurrentHeight = minHeight;
+        Name = name;
         SetRecently = true;
     }
 }

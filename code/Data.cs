@@ -22,10 +22,11 @@ static class Data
 
     public static readonly UnsecuredTable NewTable = new(new(
         "00:11:22:33:44:55",
+        "bluetooth",
         "MANUFACTURER_NAME",
         1.0,
         1.5,
-        "PHYSICAL_LOCATION"
+        "USER_FRIENDLY_NAME"
     ));
 
     public static readonly HttpResponse Root = new($"""

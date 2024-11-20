@@ -348,6 +348,7 @@ partial class Program
                 {
                     string? bodyText = await new StreamReader(body).ReadToEndAsync();
                     config.ExternalAPIUrl = new Uri(bodyText).ToString();
+                    UpdateExternalAPI();
                     SaveConfig();
                     return Utils.OkText(config.ExternalAPIUrl);
                 }

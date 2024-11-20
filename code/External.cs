@@ -4,6 +4,7 @@ namespace Masasas;
 
 partial class Program
 {
+    static HttpClient ExternalClient = new();
     interface IExternalApi
     {
         Task Run();
@@ -66,25 +67,27 @@ partial class Program
             public async Task Run()
             {
                 string? json = null;
-                try
+                foreach (string id in tables.Keys)
                 {
-                    foreach (string id in tables.Keys)
-                    {
-                        using HttpClient externalClient = new() { BaseAddress = new Uri(config.ExternalAPIUrl) };
+                    //only interact with api tables
+                    if (tables[id].Data.ConnectionMode != "api")
+                        continue;
 
+                    try
+                    {
                         // if table data was set recently, update the external value, otherwise update the local 
                         if (tables[id].Data.SetRecently)
                         {
                             tables[id].Data.SetRecently = false;
                             int position_mm = (int)(tables[id].Data.CurrentHeight * 1000);
-                            json = await (await externalClient.PutAsync(
+                            json = await (await ExternalClient.PutAsync(
                                 $"/api/v2/{config.ExternalAPIKey}/desks/{tables[id].Data.MacAddress.ToLowerInvariant()}/state",
                                 new StringContent($"{{\"position_mm\": {position_mm}}}")
                             )).Content.ReadAsStringAsync();
                         }
                         else
                         {
-                            json = await (await externalClient.GetAsync(
+                            json = await (await ExternalClient.GetAsync(
                                 $"/api/v2/{config.ExternalAPIKey}/desks/{tables[id].Data.MacAddress.ToLowerInvariant()}"
                             )).Content.ReadAsStringAsync();
 
@@ -97,10 +100,10 @@ partial class Program
                             }
                         }
                     }
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine(json ?? e.Message);
+                    catch (Exception e)
+                    {
+                        Console.WriteLine(json ?? e.Message);
+                    }
                 }
             }
 
@@ -108,9 +111,8 @@ partial class Program
             {
                 try
                 {
-                    using HttpClient externalClient = new() { BaseAddress = new Uri(config.ExternalAPIUrl) };
 
-                    string json = await (await externalClient.GetAsync(
+                    string json = await (await ExternalClient.GetAsync(
                             $"/api/v2/{config.ExternalAPIKey}/desks/"
                         )).Content.ReadAsStringAsync();
 
@@ -118,12 +120,13 @@ partial class Program
 
                     foreach (string macAddress in apiMacs)
                     {
-                        json = await (await externalClient.GetAsync(
+                        json = await (await ExternalClient.GetAsync(
                             $"/api/v2/{config.ExternalAPIKey}/desks/{macAddress}"
                         )).Content.ReadAsStringAsync();
                         var table = JsonSerializer.Deserialize<ApiTable>(json)!;
                         tables[macAddress] = new(new(
                             macAddress,
+                            "api",
                             table.config.manufacturer,
                             0.68,
                             1.32,
@@ -148,13 +151,21 @@ partial class Program
 
     static IExternalApi api = new ExternalAPIs.DummyApi();
 
-    static void ExternalAPICaller(object? _)
+    static async void ExternalAPICaller(object? _)
     {
-        api.Run();
+        await api.Run();
     }
 
     static void UpdateExternalAPI()
     {
+        try
+        {
+            ExternalClient = new() { BaseAddress = new(config.ExternalAPIUrl) };
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e.Message);
+        }
         api = config.ExternalAPIType.ToLowerInvariant() switch
         {
             "kr64" => new ExternalAPIs.Kr64Api(),
